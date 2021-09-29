@@ -23,10 +23,10 @@ object ProxyMain {
         val validConnectionFlow = framedBytes.flatMapPrefix(1) { frames =>
           frames.head.iterator.decodeControlPacket(maxPacketSize) match {
             case Right(x: Connect) if x.clientId != "subscriber-2" => Flow[ByteString].prepend(Source(frames))
-            case x                                                 => Flow.fromSinkAndSourceCoupled(Sink.ignore, Source.empty)
+            case x                                                 => Flow.fromSinkAndSourceCoupled(Sink.cancelled, Source.empty)
           }
         }
-        validConnectionFlow.join(outgoingFlow).run()
+        validConnectionFlow.join(Flow.lazyFlow(() => outgoingFlow)).run()
       }
       .onComplete(println)
   }
