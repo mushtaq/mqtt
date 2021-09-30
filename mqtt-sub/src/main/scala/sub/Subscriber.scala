@@ -33,7 +33,7 @@ object Subscriber {
     val topic    = "topic-4"
 
     Source
-      .queue(10, OverflowStrategy.fail)
+      .queue(10)
       .via(mqttFlow)
       .mapMaterializedValue { q =>
         q.offer(Command(Connect(clientId, ConnectFlags.CleanSession, "streamsheets", "H0hLZ1HiCZ")))

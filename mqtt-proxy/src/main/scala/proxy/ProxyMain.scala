@@ -3,8 +3,8 @@ package proxy
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter.TypedActorSystemOps
-import akka.stream.alpakka.mqtt.streaming.MqttCodec.MqttByteIterator
-import akka.stream.alpakka.mqtt.streaming.{AlpakkaUtil, Connect}
+import akka.stream.alpakka.mqtt.streaming.MqttCodec.{MqttByteIterator, MqttConnAck}
+import akka.stream.alpakka.mqtt.streaming._
 import akka.stream.scaladsl.{Flow, Sink, Source, Tcp}
 import akka.util.ByteString
 
@@ -25,7 +25,9 @@ object ProxyMain {
             case Right(x: Connect) if x.clientId != "subscriber-2" =>
               Flow[ByteString].prepend(Source(frames)).via(outgoingFlow)
             case x                                                 =>
-              Flow.fromSinkAndSourceCoupled(Sink.cancelled, Source.empty)
+              val connAck    = ConnAck(ConnAckFlags.None, ConnAckReturnCode.ConnectionRefusedNotAuthorized)
+              val byteString = connAck.encode(ByteString.newBuilder).result()
+              Flow.fromSinkAndSourceCoupled(Sink.cancelled, Source.single(byteString))
           }
         }
         validConnectionFlow.join(Flow[ByteString]).run()
