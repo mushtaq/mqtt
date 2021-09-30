@@ -7,7 +7,7 @@ import akka.actor.typed.scaladsl.adapter.TypedActorSystemOps
 import akka.stream.OverflowStrategy
 import akka.stream.alpakka.mqtt.streaming._
 import akka.stream.alpakka.mqtt.streaming.scaladsl.{ActorMqttClientSession, Mqtt}
-import akka.stream.scaladsl.{Flow, Keep, Sink, Source, SourceQueueWithComplete, Tcp}
+import akka.stream.scaladsl.{Flow, Source, Tcp}
 import akka.util.ByteString
 
 import scala.concurrent.duration.DurationInt
@@ -15,6 +15,7 @@ import scala.concurrent.duration.DurationInt
 object PublisherMain {
   def main(args: Array[String]): Unit = {
     implicit val actorSystem: ActorSystem[Nothing] = ActorSystem(Behaviors.empty, "pub-actor-system")
+    import actorSystem.executionContext
 
     val settings = MqttSessionSettings()
     val session  = ActorMqttClientSession(settings)
@@ -26,30 +27,27 @@ object PublisherMain {
         .clientSessionFlow(session, ByteString("pub-11"))
         .join(connection)
 
-    val sink = Sink.foreach[Any] {
-      case Right(Event(x: Publish, _)) => println((x, x.payload.utf8String))
-      case x                           => println(x)
-    }
-
-    val commands: SourceQueueWithComplete[Command[Nothing]] =
-      Source
-        .queue(10, OverflowStrategy.fail)
-        .via(mqttFlow)
-        .toMat(sink)(Keep.left)
-        .run()
-
     val clientId = "publisher-11"
     val topic    = "topic-4"
 
-    commands.offer(Command(Connect(clientId, ConnectFlags.CleanSession, "streamsheets", "H0hLZ1HiCZ")))
-
     Source
-      .fromIterator(() => Iterator.from(1))
-      .throttle(1, 1.second)
-      .runForeach { x =>
-        session ! Command(
-          Publish(ControlPacketFlags.None, topic, ByteString(s"ohi-1-$x"))
-        )
+      .queue(10, OverflowStrategy.fail)
+      .via(mqttFlow)
+      .mapMaterializedValue { q =>
+        q.offer(Command(Connect(clientId, ConnectFlags.CleanSession, "streamsheets", "H0hLZ1HiCZ")))
+        Source
+          .fromIterator(() => Iterator.from(1))
+          .throttle(1, 1.second)
+          .runForeach { x =>
+            session ! Command(
+              Publish(ControlPacketFlags.None, topic, ByteString(s"ohi-1-$x"))
+            )
+          }
       }
+      .runForeach {
+        case Right(Event(x: Publish, _)) => println((x, x.payload.utf8String))
+        case x                           => println(x)
+      }
+      .onComplete(println)
   }
 }

@@ -7,7 +7,7 @@ import akka.actor.typed.scaladsl.adapter.TypedActorSystemOps
 import akka.stream.OverflowStrategy
 import akka.stream.alpakka.mqtt.streaming._
 import akka.stream.alpakka.mqtt.streaming.scaladsl.{ActorMqttClientSession, Mqtt}
-import akka.stream.scaladsl.{Flow, Keep, Sink, Source, SourceQueueWithComplete, Tcp}
+import akka.stream.scaladsl.{Flow, Source, Tcp}
 import akka.util.ByteString
 
 import scala.concurrent.Future
@@ -29,26 +29,20 @@ object Subscriber {
         .clientSessionFlow(session, ByteString(s"sub-$subscriberId"))
         .join(connection)
 
-    val sink = Sink
-      .foreach[Any] {
-        case Right(Event(x: Publish, _)) => println((x, x.payload.utf8String))
-        case x                           => println(x)
-      }
-      .mapMaterializedValue(_.onComplete(println))
-
-    val commands: SourceQueueWithComplete[Command[Nothing]] =
-      Source
-        .queue(10, OverflowStrategy.fail)
-        .via(mqttFlow)
-        .toMat(sink)(Keep.left)
-        .run()
-
     val clientId = s"subscriber-$subscriberId"
     val topic    = "topic-4"
 
-    commands.offer(Command(Connect(clientId, ConnectFlags.CleanSession, "streamsheets", "H0hLZ1HiCZ")))
-    commands.offer(Command(Subscribe(topic)))
-
-    commands.watchCompletion().onComplete(println)
+    Source
+      .queue(10, OverflowStrategy.fail)
+      .via(mqttFlow)
+      .mapMaterializedValue { q =>
+        q.offer(Command(Connect(clientId, ConnectFlags.CleanSession, "streamsheets", "H0hLZ1HiCZ")))
+        q.offer(Command(Subscribe(topic)))
+      }
+      .runForeach {
+        case Right(Event(x: Publish, _)) => println((x, x.payload.utf8String))
+        case x                           => println(x)
+      }
+      .onComplete(println)
   }
 }
