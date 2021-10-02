@@ -10,9 +10,10 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.ExceptionHandler
 import akka.stream.alpakka.mqtt.streaming._
 import akka.stream.alpakka.mqtt.streaming.scaladsl.{ActorMqttServerSession, Mqtt}
-import akka.stream.scaladsl.{Flow, Sink, Source}
+import akka.stream.scaladsl.{Flow, Source}
 import akka.util.ByteString
 import akka.{Done, NotUsed}
+import stream.StreamExtensions
 
 import scala.concurrent.Promise
 import scala.util.{Failure, Success}
@@ -30,11 +31,8 @@ object WebsocketServer {
       extractClientIP { remoteAddress =>
         val address = remoteAddress.toOption.getOrElse(throw new RuntimeException).getAddress
 
-        val (incomingSink, incomingSource) =
-          Source.asSubscriber[Message].mapMaterializedValue(Sink.fromSubscriber).preMaterialize()
-
-        val (outgoingSink, outgoingSource) =
-          Source.asSubscriber[ByteString].mapMaterializedValue(Sink.fromSubscriber).preMaterialize()
+        val (incomingSink, incomingSource) = StreamExtensions.sinkToSource[Message].preMaterialize()
+        val (outgoingSink, outgoingSource) = StreamExtensions.sinkToSource[ByteString].preMaterialize()
 
         val mqttFlow: Flow[Command[Nothing], Either[MqttCodec.DecodeError, Event[Nothing]], NotUsed] =
           Mqtt
