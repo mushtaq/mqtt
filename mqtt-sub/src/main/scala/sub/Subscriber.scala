@@ -3,14 +3,12 @@ package sub
 import akka.NotUsed
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.scaladsl.adapter.TypedActorSystemOps
-import akka.stream.OverflowStrategy
-import akka.stream.alpakka.mqtt.streaming._
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.ws.{BinaryMessage, WebSocketRequest}
 import akka.stream.alpakka.mqtt.streaming.scaladsl.{ActorMqttClientSession, Mqtt}
-import akka.stream.scaladsl.{Flow, Source, Tcp}
+import akka.stream.alpakka.mqtt.streaming._
+import akka.stream.scaladsl.{Flow, Source}
 import akka.util.ByteString
-
-import scala.concurrent.Future
 
 object Subscriber {
 
@@ -21,8 +19,18 @@ object Subscriber {
     val settings = MqttSessionSettings()
     val session  = ActorMqttClientSession(settings)
 
-    val connection: Flow[ByteString, ByteString, Future[Tcp.OutgoingConnection]] =
-      Tcp()(actorSystem.toClassic).outgoingConnection("localhost", 1773)
+    val webSocketFlow =
+      Http()
+        .webSocketClientFlow(WebSocketRequest("ws://127.0.0.1:8001"))
+        .mapMaterializedValue(_.onComplete(println))
+
+    val connection = Flow[ByteString]
+      .map(x => BinaryMessage.Strict(x))
+      .via(webSocketFlow)
+      .flatMapConcat(_.asBinaryMessage.getStreamedData)
+
+//    val connection: Flow[ByteString, ByteString, Future[Tcp.OutgoingConnection]] =
+//      Tcp()(actorSystem.toClassic).outgoingConnection("127.0.0.1", 1883)
 
     val mqttFlow: Flow[Command[Nothing], Either[MqttCodec.DecodeError, Event[Nothing]], NotUsed] =
       Mqtt
