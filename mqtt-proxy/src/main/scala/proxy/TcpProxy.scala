@@ -8,7 +8,7 @@ import akka.stream.alpakka.mqtt.streaming._
 import akka.stream.scaladsl.{Flow, Sink, Source, Tcp}
 import akka.util.ByteString
 
-object ProxyMain {
+object TcpProxy {
   def main(args: Array[String]): Unit = {
     implicit val actorSystem: ActorSystem[Nothing] = ActorSystem(Behaviors.empty, "proxy-actor-system")
     import actorSystem.executionContext

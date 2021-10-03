@@ -10,7 +10,7 @@ import akka.stream.alpakka.mqtt.streaming._
 import akka.stream.scaladsl.{Flow, Source}
 import akka.util.ByteString
 
-object Subscriber {
+object WebsocketSubscriber {
 
   def subscription(subscriberId: Int): Unit = {
     implicit val actorSystem: ActorSystem[Nothing] = ActorSystem(Behaviors.empty, s"sub-$subscriberId-actor-system")
@@ -22,16 +22,12 @@ object Subscriber {
     val webSocketFlow =
       Http()
         .webSocketClientFlow(WebSocketRequest("ws://127.0.0.1:8001", subprotocol = Some("mqtt")))
-//        .webSocketClientFlow(WebSocketRequest("ws://127.0.0.1:9001", subprotocol = Some("mqtt")))
         .mapMaterializedValue(_.onComplete(println))
 
     val connection = Flow[ByteString]
       .map(x => BinaryMessage.Strict(x))
       .via(webSocketFlow)
       .flatMapConcat(_.asBinaryMessage.getStreamedData)
-
-//    val connection: Flow[ByteString, ByteString, Future[Tcp.OutgoingConnection]] =
-//      Tcp()(actorSystem.toClassic).outgoingConnection("127.0.0.1", 1883)
 
     val mqttFlow: Flow[Command[Nothing], Either[MqttCodec.DecodeError, Event[Nothing]], NotUsed] =
       Mqtt

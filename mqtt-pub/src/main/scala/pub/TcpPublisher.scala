@@ -11,7 +11,7 @@ import akka.util.ByteString
 
 import scala.concurrent.duration.DurationInt
 
-object PublisherMain {
+object TcpPublisher {
   def main(args: Array[String]): Unit = {
     implicit val actorSystem: ActorSystem[Nothing] = ActorSystem(Behaviors.empty, "pub-actor-system")
     import actorSystem.executionContext

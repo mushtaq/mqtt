@@ -15,7 +15,7 @@ import akka.util.ByteString
 
 import scala.concurrent.duration.DurationInt
 
-object WebsocketProxyMain {
+object WebsocketProxy {
   def main(args: Array[String]): Unit = {
     implicit val actorSystem: ActorSystem[Nothing] = ActorSystem(Behaviors.empty, "proxy-actor-system")
     import actorSystem.executionContext
