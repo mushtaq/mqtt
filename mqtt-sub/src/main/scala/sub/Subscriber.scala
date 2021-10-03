@@ -21,7 +21,8 @@ object Subscriber {
 
     val webSocketFlow =
       Http()
-        .webSocketClientFlow(WebSocketRequest("ws://127.0.0.1:8001"))
+        .webSocketClientFlow(WebSocketRequest("ws://127.0.0.1:8001", subprotocol = Some("mqtt")))
+//        .webSocketClientFlow(WebSocketRequest("ws://127.0.0.1:9001", subprotocol = Some("mqtt")))
         .mapMaterializedValue(_.onComplete(println))
 
     val connection = Flow[ByteString]

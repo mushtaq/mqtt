@@ -51,7 +51,6 @@ object WebsocketServer {
         source
           .runForeach {
             case Right(Event(_: Connect, _))    =>
-              println("********************")
               queue.offer(Command(ConnAck(ConnAckFlags.None, ConnAckReturnCode.ConnectionAccepted)))
             case Right(Event(cp: Subscribe, _)) =>
               queue.offer(Command(SubAck(cp.packetId, cp.topicFilters.map(_._2)), Some(subscribed), None))
@@ -68,11 +67,12 @@ object WebsocketServer {
 
         get {
           pathSingleSlash {
-            handleWebSocketMessages(
+            handleWebSocketMessagesForProtocol(
               Flow.fromSinkAndSourceCoupled(
                 incomingSink,
                 outgoingSource.map(BinaryMessage.Strict)
-              )
+              ),
+              "mqtt"
             )
           }
         }

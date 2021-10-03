@@ -15,6 +15,8 @@ lazy val `mqtt-sub` = project.dependsOn(`akka-utils`)
 
 lazy val `mqtt-proxy` = project.dependsOn(`akka-utils`)
 
+lazy val `mqtt-server` = project.dependsOn(`akka-utils`)
+
 lazy val `akka-utils` = project
   .settings(
     libraryDependencies ++= List(
