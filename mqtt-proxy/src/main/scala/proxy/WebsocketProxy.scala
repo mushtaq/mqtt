@@ -3,11 +3,8 @@ package proxy
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.HttpResponse
-import akka.http.scaladsl.model.StatusCodes.InternalServerError
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, WebSocketRequest}
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.ExceptionHandler
 import akka.stream.alpakka.mqtt.streaming.MqttCodec.{MqttByteIterator, MqttConnAck}
 import akka.stream.alpakka.mqtt.streaming._
 import akka.stream.scaladsl.{Flow, Sink, Source}
@@ -39,22 +36,15 @@ object WebsocketProxy {
       Flow.futureFlow(flowF)
     }
 
-    val myExceptionHandler = ExceptionHandler { case ex =>
-      ex.printStackTrace()
-      complete(HttpResponse(InternalServerError, entity = "error"))
-    }
-
-    val route = handleExceptions(myExceptionHandler) {
-      get {
-        pathSingleSlash {
-          handleWebSocketMessagesForProtocol(flow, "mqtt")
-        }
+    val route = get {
+      pathSingleSlash {
+        handleWebSocketMessagesForProtocol(flow, "mqtt")
       }
     }
 
-    Http().newServerAt("127.0.0.1", 8001).bind((route)).onComplete(println)
-
-    println(s"Server now online. Please navigate to http://127.0.0.1:8001/")
+    Http()
+      .newServerAt("127.0.0.1", 8001)
+      .bind(route)
+      .onComplete(println)
   }
-
 }

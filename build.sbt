@@ -21,6 +21,7 @@ lazy val `akka-utils` = project
   .settings(
     libraryDependencies ++= List(
       `akka-stream-alpakka-mqtt-streaming`,
+      `akka-stream-alpakka-unix-domain-socket`,
       `akka-http`,
       scalatest % Test
     )
