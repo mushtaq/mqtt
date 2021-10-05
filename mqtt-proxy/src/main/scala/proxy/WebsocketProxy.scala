@@ -43,7 +43,7 @@ object WebsocketProxy {
     }
 
     Http()
-      .newServerAt("127.0.0.1", 8001)
+      .newServerAt("0.0.0.0", 8001)
       .bind(route)
       .onComplete(println)
   }

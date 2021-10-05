@@ -41,7 +41,10 @@ object WebsocketServer {
               )
             )
 
-        val (queue, source) = Source.queue[Command[Nothing]](64).via(mqttFlow).preMaterialize()
+        val (queue, source) = Source
+          .queue[Command[Nothing]](64)
+          .via(mqttFlow)
+          .preMaterialize()
 
         val subscribed = Promise[Done]
 
@@ -76,7 +79,7 @@ object WebsocketServer {
       }
 
     Http()
-      .newServerAt("127.0.0.1", 8001)
+      .newServerAt("0.0.0.0", 8001)
       .bind(route)
       .onComplete(println)
   }
